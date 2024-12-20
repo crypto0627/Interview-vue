@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl mt-8">
-    <BarChart :data="chartData" :options="chartOptions" />
+    <Bar :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
@@ -21,9 +21,8 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default defineComponent({
-  name: 'ChartDashboard',
   components: {
-    BarChart: Bar,
+    Bar
   },
   setup() {
     const chartData = ref({
