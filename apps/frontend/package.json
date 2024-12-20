@@ -1,0 +1,38 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@vue/runtime-dom": "^3.5.13",
+    "chart.js": "^4.4.7",
+    "vite": "^5",
+    "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/eslint-config-typescript": "^14.1.4",
+    "@vue/tsconfig": "^0.7.0",
+    "autoprefixer": "^10.4.20",
+    "esbuild": "^0.24.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.6.2",
+    "vue-tsc": "^2.1.10"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "printWidth": 100
+  }
+}

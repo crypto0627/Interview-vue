@@ -1,0 +1,23 @@
+{
+  "name": "interview-dashboard-serverless",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "prettier": "^3.2.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "wrangler": "^3.96.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "printWidth": 100
+  }
+}
