@@ -1,11 +1,14 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl mt-8">
-    <Bar :data="chartData" :options="chartOptions" />
+  <div v-if="loading" class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl mt-8 text-center">
+    <p>數據加載中...</p>
+  </div>
+  <div v-else class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl mt-8">
+    <Bar v-if="chartKey" :data="chartData" :options="chartOptions" :key="chartKey" ref="barChart" />
   </div>
 </template>
 
-<script>
-import { defineComponent, ref, onMounted } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, watch, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -16,128 +19,128 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import { DataFetcher } from '../services/fetchData'
+import type { ChartData } from '../types/types'
+import { rawData } from '../constants/InitData'
+import eventBus from '../services/eventBus'
+import type { ChartOptions, FontSpec } from 'chart.js'
 
-// Register necessary chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default defineComponent({
   components: {
-    Bar
+    Bar,
   },
   setup() {
-    const chartData = ref({
-      ids: [],
-      labels: [], // Time labels for X-axis
+    const loading = ref(true)
+    const chartKey = ref(0) // 渲染圖表的key
+    const chartData = ref<ChartData>({
+      labels: [],
       datasets: [
         {
-          label: 'Data over Time',
-          data: [], // The actual data values
-          backgroundColor: [], // Colors based on values (green or red)
-          borderColor: [], // Border colors based on values (green or red)
+          label: 'Data value',
+          data: [],
+          backgroundColor: [],
+          borderColor: [],
           borderWidth: 1,
         },
       ],
     })
 
-    const chartOptions = ref({
+    const chartOptions = ref<ChartOptions<'bar'>>({
       responsive: true,
       scales: {
         x: {
-          title: {
-            display: false,
-          },
           grid: {
-            drawOnChartArea: false, // Hide grid lines if needed
+            drawOnChartArea: true,
           },
           border: {
-            display: true, // Display the X-axis line
-            color: 'black', // Set the color of the X-axis line
-            width: 2, // Set the width of the X-axis line
+            display: true,
+            color: 'black',
+            width: 2,
           },
           ticks: {
-            autoSkip: true,
             maxRotation: 45,
             minRotation: 45,
+            autoSkip: false,
           },
         },
         y: {
-          beginAtZero: false,
+          type: 'linear',
+          ticks: {
+            callback: (tickValue: string | number) => {
+              const allowedValues = [1200, 1000, 500, 0, -500, -1064]
+
+              // 確保 tickValue 是 number 類型再進行比較
+              if (typeof tickValue === 'number' && allowedValues.includes(tickValue)) {
+                return tickValue.toString()
+              }
+              return ''
+            },
+          },
           min: -1064,
           max: 1200,
-          ticks: {
-            stepSize: 500,
-          },
           title: {
             display: true,
-            text: 'Data Value',
+            text: '排程 (kW)',
+            color: 'black',
+            font: {
+              size: 12,
+              family: 'Arial',
+              weight: 'bold',
+            } as FontSpec,
+          },
+          grid: {
+            drawOnChartArea: true,
           },
           border: {
-            display: true, // Display the Y-axis line
-            color: 'black', // Set the color of the Y-axis line
-            width: 2, // Set the width of the Y-axis line
+            display: true,
+            color: 'black',
+            width: 2,
           },
         },
       },
     })
 
-    // Function to generate time labels every 30 minutes from 00:00 to 24:00
-    const generateTimeLabels = () => {
-      const times = []
-      let hour = 0
-      let minute = 0
-      for (let i = 0; i < 48; i++) {
-        // 48 half-hour intervals in 24 hours
-        const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-        times.push(timeString)
-        minute += 30
-        if (minute === 60) {
-          minute = 0
-          hour += 1
-        }
-      }
-      return times
+    const updateChartData = (newData: typeof rawData.value) => {
+      chartData.value.labels = newData.map((item) => item.time)
+      chartData.value.datasets[0].data = newData.map((item) => item.data)
+      chartData.value.datasets[0].backgroundColor = newData.map((item) =>
+        item.data > 0 ? 'green' : 'red',
+      )
+      chartData.value.datasets[0].borderColor = newData.map((item) =>
+        item.data > 0 ? 'green' : 'red',
+      )
+      chartKey.value++
+      console.log(chartData.value.labels)
     }
 
-    // Fetch data from the API and update chartData
+    // 模擬 API 請求
     const fetchData = async () => {
       const apiUrl = `${import.meta.env.VITE_SCHEDULE_DATA_API_URL}/api/data`
+      const dataFetcher = new DataFetcher(apiUrl)
       try {
-        const response = await fetch(apiUrl)
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        const response = await dataFetcher.fetchData()
+        if (response) {
+          rawData.value = response
+          updateChartData(response)
+          loading.value = false
         }
-        const data = await response.json()
-
-        // Extract time, data, and assign colors based on values
-        const ids = data.map((item) => item.id)
-        const times = data.map((item) => item.time)
-        const values = data.map((item) => item.data)
-        const backgroundColors = values.map((value) =>
-          value > 0 ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 0, 0, 0.6)',
-        )
-        const borderColors = values.map((value) => (value > 0 ? 'green' : 'red'))
-
-        // Generate all time labels from 00:00 to 24:00
-        const allLabels = generateTimeLabels()
-
-        // Match the data to the times and insert the values
-        const chartLabels = allLabels
-        const chartDataValues = allLabels.map((time) => {
-          const matchingItem = data.find((item) => item.time === time)
-          return matchingItem ? matchingItem.data : null // Default to null for missing data
-        })
-
-        chartData.value.ids = ids
-        chartData.value.labels = chartLabels
-        chartData.value.datasets[0].data = chartDataValues
-        chartData.value.datasets[0].backgroundColor = backgroundColors
-        chartData.value.datasets[0].borderColor = borderColors
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('API 請求失敗:', error)
+        loading.value = false
       }
     }
 
-    // Fetch data when the component is mounted
+    watch(rawData, (newData) => {
+      updateChartData(newData)
+    })
+
+    eventBus.on('data-updated', () => {
+      console.log('資料更新事件觸發')
+      fetchData()
+    })
+
     onMounted(async () => {
       await fetchData()
     })
@@ -145,6 +148,8 @@ export default defineComponent({
     return {
       chartData,
       chartOptions,
+      loading,
+      chartKey,
     }
   },
 })

@@ -47,41 +47,18 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
+import { DataFetcher } from '../services/fetchData'
 
 export default defineComponent({
   setup() {
     const mode = ref<string>('standby')
     const inputValue = ref<number | string>('')
 
-    const apiUrl = import.meta.env.SCHEDULE_DATA_API_URL
+    const apiUrl = `${import.meta.env.VITE_SCHEDULE_DATA_API_URL}/api/data/0`
+    const dataFetcher = new DataFetcher(apiUrl)
     const handleSubmit = async () => {
       if (mode.value === 'schedule' && inputValue.value !== '') {
-        try {
-          const data = {
-            time: '00:00 -> 00:15',
-            schedule: inputValue.value,
-          }
-
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-          })
-
-          if (response.ok) {
-            const result = await response.json()
-            console.log('Data saved:', result)
-            alert('Data saved successfully')
-          } else {
-            console.error('Failed to save data')
-            alert('Failed to save data')
-          }
-        } catch (error) {
-          console.error('Error:', error)
-          alert('Error occurred while saving data')
-        }
+        await dataFetcher.updateData(Number(inputValue.value))
       } else {
         alert('Please enter a valid value and select "設定排程"')
       }
